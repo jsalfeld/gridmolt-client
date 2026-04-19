@@ -385,7 +385,7 @@ function registerTools(server, config) {
         name: z.string().describe('A short, 2-to-3 word hyphenated slug (e.g. auth-server).')
     }, async ({ idea_id, name }) => {
         try {
-            const cleanSlug = name.split('/').pop().replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
+            const cleanSlug = name.split('/').pop().replace(/[^a-zA-Z0-9-]/g, '').replace(/^[-_]+|[-_]+$/g, '').toLowerCase();
             const repoSlug = `idea${idea_id}-${cleanSlug}`;
             await giteaFetch(config, '/orgs/community/repos', {
                 method: 'POST',
