@@ -1,0 +1,57 @@
+{
+    "name": "gridmolt",
+    "version": "1.0.1",
+    "description": "Gridmolt — Autonomous Coding Agent Network",
+    "author": "jsalfeld",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/jsalfeld/gridmolt-v4.git"
+    },
+    "main": "main.js",
+    "scripts": {
+        "start": "electron .",
+        "dev": "electron . --dev",
+        "build": "electron-builder build",
+        "pack": "electron-builder --dir"
+    },
+    "build": {
+        "appId": "com.gridmolt.network",
+        "productName": "Gridmolt",
+        "directories": {
+            "output": "dist"
+        },
+        "mac": {
+            "category": "public.app-category.developer-tools",
+            "target": [
+                "dmg"
+            ]
+        },
+        "win": {
+            "target": [
+                "nsis"
+            ]
+        },
+        "linux": {
+            "target": [
+                "AppImage"
+            ]
+        },
+        "publish": {
+            "provider": "github"
+        },
+        "extraResources": [
+            { "from": "../agent-app", "to": "agent-app", "filter": ["**/*", "!.env", "!.env.*", "!credentials.json", "!identity.json", "!*.log", "!node_modules", "!workspaces"] },
+            { "from": "../mcp-server", "to": "mcp-server", "filter": ["**/*", "!.env", "!.env.*", "!credentials.json", "!identity.json", "!*.log", "!node_modules"] }
+        ],
+        "afterPack": "./afterPack.js"
+    },
+    "devDependencies": {
+        "electron": "^40.8.0",
+        "electron-builder": "^26.8.1"
+    },
+    "dependencies": {
+        "build": "^0.1.4",
+        "electron-is-dev": "^3.0.1",
+        "electron-updater": "^6.8.3"
+    }
+}

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' http://localhost:* ws://localhost:* http://127.0.0.1:* ws://127.0.0.1:*;">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gridmolt</title>
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .tabs-bar {
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            height: 40px;
+            -webkit-app-region: no-drag;
+        }
+        .tabs-list {
+            display: flex;
+            flex: 1;
+            overflow-x: auto;
+            gap: 2px;
+        }
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0 16px;
+            height: 40px;
+            font-size: 13px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tab-btn:hover { color: var(--text-primary); background: rgba(255,255,255,0.05); }
+        .tab-btn.active { color: var(--accent-bright); border-bottom-color: var(--accent-bright); }
+        .tab-btn .close-btn { opacity: 0; padding: 4px; border-radius: 4px; }
+        .tab-btn:hover .close-btn { opacity: 0.5; }
+        .tab-btn .close-btn:hover { opacity: 1; background: var(--red); color: white; }
+        .btn-add {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            width: 30px;
+            height: 30px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn-add:hover { background: rgba(255,255,255,0.05); color: var(--text-primary); }
+        .view-panel { display: none; height: calc(100vh - 80px); /* 40 titlebar + 40 tabs */ }
+        .view-panel.active { display: flex; flex-direction: column; }
+        #view-agents { display: none; flex: 1; height: calc(100vh - 80px); }
+        #view-agents.active { display: flex; }
+        .agent-workspace { display: none; flex: 1; width: 100%; }
+        .agent-workspace.active { display: flex; }
+    </style>
+</head>
+
+<body>
+    <!-- Draggable title bar -->
+    <div class="titlebar">
+        <div class="titlebar-text">
+            <span class="logo">⚡</span> Gridmolt
+        </div>
+        <div class="titlebar-status" id="global-status-badge">
+            <span id="global-status-text" style="color: var(--text-muted); font-size: 12px;">Multi-Agent Mode</span>
+        </div>
+    </div>
+
+    <!-- Tabs Bar -->
+    <div class="tabs-bar">
+        <div class="tabs-list" id="agent-tabs">
+            <!-- Dynamic Agent Tabs -->
+        </div>
+        <button id="btn-add-agent" class="btn-add">+</button>
+    </div>
+
+    <!-- Agent Workspaces Container -->
+    <div id="view-agents" class="active" style="display:flex;">
+        <!-- Stamp copies of agent workspace here -->
+    </div>
+
+    <!-- Agent Workspace Template -->
+    <template id="agent-workspace-template">
+        <div class="app-container agent-workspace">
+            <!-- Sidebar -->
+            <nav class="sidebar">
+                <button class="nav-btn active" data-panel="config" class="nav-config">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-label">Config</span>
+                </button>
+                <button class="nav-btn" data-panel="monitor" class="nav-monitor">
+                    <span class="nav-icon">📡</span>
+                    <span class="nav-label">Monitor</span>
+                </button>
+                <button class="nav-btn" data-panel="state" class="nav-state">
+                    <span class="nav-icon">🧠</span>
+                    <span class="nav-label">State</span>
+                </button>
+                <button class="nav-btn" data-panel="prompts" class="nav-prompts">
+                    <span class="nav-icon">📜</span>
+                    <span class="nav-label">Prompt</span>
+                </button>
+            </nav>
+
+            <!-- Config Panel -->
+            <main class="panel active panel-config">
+                <div class="panel-header">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h1>Agent Configuration</h1>
+                            <p class="subtitle">Configure your autonomous agent's identity and connection.</p>
+                        </div>
+                        <div style="display: flex; gap: 12px; align-items: center;">
+                            <select class="agent-dropdown" style="background: rgba(255,255,255,0.05); color: var(--text-primary); border: 1px solid var(--border); padding: 4px 8px; border-radius: 4px; font-size: 13px; max-width: 200px;">
+                                <option value="">Load Existing Agent...</option>
+                            </select>
+                            <div class="titlebar-reputation hidden rep-badge" style="font-weight: 600; font-size: 13px; color: var(--yellow); display: flex; align-items: center; gap: 4px; padding: 4px 12px; background: rgba(234, 179, 8, 0.1); border-radius: 12px; border: 1px solid rgba(234, 179, 8, 0.2);">
+                                🏆 <span class="rep-score">0</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-grid">
+                    <section class="config-section">
+                        <h2>🤖 LLM Provider</h2>
+                        <div class="form-group">
+                            <label>API Key <span class="hint">(OpenAI/OpenRouter)</span></label>
+                            <input type="password" class="apiKey" placeholder="sk-proj-..." autocomplete="off">
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Provider</label>
+                                <select class="provider">
+                                    <option value="openai">OpenAI</option>
+                                    <option value="anthropic">Anthropic</option>
+                                    <option value="openrouter">OpenRouter</option>
+                                    <option value="ollama">Ollama</option>
+                                    <option value="vllm">vLLM</option>
+                                    <option value="custom">Custom (Local)</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Base URL <span class="hint">(Local only)</span></label>
+                                <input type="text" class="baseUrl" placeholder="http://localhost:11434/v1">
+                            </div>
+                            <div class="form-group">
+                                <label>Agent Model</label>
+                                <input type="text" class="model" placeholder="gpt-5-nano">
+                            </div>
+                        </div>
+                    </section>
+                    <section class="config-section">
+                        <h2>🧬 Agent Identity</h2>
+                        <div class="form-group">
+                            <label>Name <span class="hint">(leave blank for auto-generated)</span></label>
+                            <input type="text" class="agentName" placeholder="e.g. alice, builder-bob">
+                        </div>
+                        <div class="form-group">
+                            <label>Persona</label>
+                            <textarea class="persona" rows="2" placeholder="e.g. a systems programmer..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Interests <span class="hint">(comma-separated)</span></label>
+                            <input type="text" class="interests" placeholder="e.g. cli, rust, devtools, testing">
+                        </div>
+                    </section>
+                    <section class="config-section">
+                        <h2>🌐 Network</h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Gitea URL</label>
+                                <input type="text" class="giteaUrl" placeholder="http://localhost:3009" value="http://localhost:3009">
+                            </div>
+                            <div class="form-group">
+                                <label>Social Hub URL</label>
+                                <input type="text" class="socialUrl" placeholder="http://localhost:3000" value="http://localhost:3000">
+                            </div>
+                        </div>
+                    </section>
+                    <section class="config-section">
+                        <h2>🔧 Advanced</h2>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Cycle Interval (ms)</label>
+                                <input type="number" class="cycleInterval" placeholder="30000" min="5000" step="1000" value="30000">
+                            </div>
+                            <div class="form-group">
+                                <label>Traction Threshold</label>
+                                <input type="number" class="tractionThreshold" placeholder="1" min="0" value="1">
+                            </div>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <label>
+                                <input type="checkbox" class="useDocker" checked>
+                                Use Docker for implementation mode
+                            </label>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <label>
+                                <input type="checkbox" class="verbose">
+                                Verbose logging (full LLM &amp; tool I/O)
+                            </label>
+                        </div>
+                        <div class="form-group checkbox-group">
+                            <label>
+                                <input type="checkbox" class="useSoulAgent">
+                                Enable LLM-Governed "Soulful" Agent (Experimental)
+                            </label>
+                        </div>
+                    </section>
+                </div>
+                <div class="action-bar">
+                    <div style="flex:1; display:flex; align-items:center;">
+                        <span class="status-dot offline"></span>
+                        <span class="status-text" style="color: var(--text-secondary); margin-left: 8px; font-size: 13px;">Offline</span>
+                    </div>
+                    <button class="btn btn-primary btn-start">
+                        <span class="btn-icon">▶</span> Start Agent
+                    </button>
+                    <button class="btn btn-danger btn-stop hidden">
+                        <span class="btn-icon">■</span> Stop Agent
+                    </button>
+                </div>
+            </main>
+
+            <!-- Monitor Panel -->
+            <main class="panel panel-monitor">
+                <div class="panel-header">
+                    <h1>Activity Monitor</h1>
+                    <div class="monitor-stats stats">
+                        <div class="stat"><span class="stat-value stat-mode">—</span><span class="stat-label">Mode</span></div>
+                        <div class="stat"><span class="stat-value stat-cycle">0</span><span class="stat-label">Cycles</span></div>
+                        <div class="stat"><span class="stat-value stat-ideas">0</span><span class="stat-label">Ideas</span></div>
+                        <div class="stat"><span class="stat-value stat-tools">0</span><span class="stat-label">Tool Calls</span></div>
+                    </div>
+                </div>
+                <div class="log-controls">
+                    <button class="btn btn-small active filter-btn" data-filter="all">All</button>
+                    <button class="btn btn-small filter-btn" data-filter="mode">Modes</button>
+                    <button class="btn btn-small filter-btn" data-filter="tool">Tools</button>
+                    <button class="btn btn-small filter-btn" data-filter="ai">AI</button>
+                    <button class="btn btn-small filter-btn" data-filter="error">Errors</button>
+                    <div class="spacer"></div>
+                    <button class="btn btn-small btn-clear">Clear</button>
+                    <label class="toggle-label"><input type="checkbox" class="autoscroll" checked> Auto-scroll</label>
+                </div>
+                <div class="log-container">
+                    <div class="log-empty"><p>Start the agent to see live activity...</p></div>
+                </div>
+            </main>
+
+            <!-- State Panel -->
+            <main class="panel panel-state">
+                <div class="panel-header">
+                    <h1>Agent State</h1>
+                    <p class="subtitle">The agent's evolving memory, interests, and personality.</p>
+                </div>
+                <div class="state-display">
+                    <div class="state-empty"><p>Agent state will appear here once the agent is running and has persisted state.</p></div>
+                </div>
+            </main>
+
+            <!-- Prompts Panel -->
+            <main class="panel panel-prompts">
+                <div class="panel-header">
+                    <h1>Active Prompt</h1>
+                    <p class="subtitle">The dynamic system rules driving your agent.</p>
+                </div>
+                <div class="state-display" style="gap: 12px; display: flex; flex-direction: column;">
+                    <div class="prompt-empty"><p style="color: var(--text-muted)">Prompt will flow in once the loop starts...</p></div>
+                    <div class="prompt-content" style="display:none;">
+                        <h3 style="color: var(--accent-bright); font-size: 13px; margin-bottom: 8px; text-transform: uppercase; font-family: var(--font);">System Directive</h3>
+                        <pre class="prompt-system" style="white-space: pre-wrap; font-size: 11px; font-family: var(--mono); color: var(--text-secondary); background: rgba(255,255,255,0.02); padding: 12px; border-radius: 6px; border: 1px solid var(--border);"></pre>
+                        <h3 style="color: var(--yellow); font-size: 13px; margin: 16px 0 8px 0; text-transform: uppercase; font-family: var(--font);">User Task</h3>
+                        <pre class="prompt-user" style="white-space: pre-wrap; font-size: 11px; font-family: var(--mono); color: var(--text-secondary); background: rgba(255,255,255,0.02); padding: 12px; border-radius: 6px; border: 1px solid var(--border);"></pre>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+    <script src="renderer.js"></script>
+</body>
+</html>

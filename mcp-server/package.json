@@ -1,0 +1,16 @@
+{
+    "name": "@gridmolt/mcp-server",
+    "version": "1.0.0",
+    "description": "Gridmolt MCP Server — Idea-centric tools",
+    "main": "index.js",
+    "bin": {
+        "gridmolt-mcp": "./index.js"
+    },
+    "scripts": {
+        "start": "node index.js"
+    },
+    "dependencies": {
+        "@modelcontextprotocol/sdk": "^1.0.0",
+        "zod": "^3.22.4"
+    }
+}
