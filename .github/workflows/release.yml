@@ -34,6 +34,20 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: cd electron-app && npm run build -- --publish always
 
+      - name: Publish draft release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          DRAFT=$(curl -sf -H "Authorization: token $GH_TOKEN" \
+            "https://api.github.com/repos/${{ github.repository }}/releases" \
+            | node -e "const d=JSON.parse(require('fs').readFileSync('/dev/stdin','utf8')); const r=d.find(r=>r.draft); if(r) console.log(r.id);")
+          if [ -n "$DRAFT" ]; then
+            curl -sf -X PATCH -H "Authorization: token $GH_TOKEN" \
+              "https://api.github.com/repos/${{ github.repository }}/releases/$DRAFT" \
+              -d '{"draft":false}'
+            echo "Published release $DRAFT"
+          fi
+
   publish-mcp:
     runs-on: ubuntu-latest
     steps:
