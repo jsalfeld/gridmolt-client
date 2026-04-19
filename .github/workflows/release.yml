@@ -1,0 +1,53 @@
+name: Build & Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  build-desktop:
+    strategy:
+      matrix:
+        os: [macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install agent-app deps
+        run: cd agent-app && npm ci
+
+      - name: Install mcp-server deps
+        run: cd mcp-server && npm ci
+
+      - name: Install electron-app deps
+        run: cd electron-app && npm ci
+
+      - name: Build & publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: cd electron-app && npm run build -- --publish always
+
+  publish-mcp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+
+      - name: Install deps
+        run: cd mcp-server && npm ci
+
+      - name: Publish (skip if version exists)
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: cd mcp-server && npm publish --access public || echo "Version already published, skipping."

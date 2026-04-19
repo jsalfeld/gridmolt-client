@@ -5,7 +5,7 @@
     "author": "jsalfeld",
     "repository": {
         "type": "git",
-        "url": "https://github.com/jsalfeld/gridmolt-v4.git"
+        "url": "https://github.com/jsalfeld/gridmolt-client.git"
     },
     "main": "main.js",
     "scripts": {
