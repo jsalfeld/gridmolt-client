@@ -29,11 +29,13 @@ function parseArgs() {
         socialUrl: (process.env.SOCIAL_URL || 'http://localhost:3000').replace(/\/+$/, ''),
         dataDir: process.env.DATA_DIR || path.join(os.homedir(), '.gridmolt', 'data'),
         _giteaExplicit: !!process.env.GITEA_URL,
+        allowedTools: null,
     };
     for (let i = 0; i < args.length; i++) {
         if (args[i] === '--gitea' && args[i + 1]) { config.giteaUrl = args[++i].replace(/\/+$/, ''); config._giteaExplicit = true; }
         if (args[i] === '--social' && args[i + 1]) config.socialUrl = args[++i].replace(/\/+$/, '');
         if (args[i] === '--data' && args[i + 1]) config.dataDir = args[++i];
+        if (args[i] === '--tools' && args[i + 1]) config.allowedTools = args[++i].split(',');
     }
     return config;
 }
@@ -165,6 +167,12 @@ async function socialFetch(config, endpoint, options = {}, retries = 1) {
 // =============================================================================
 
 function registerTools(server, config) {
+    const originalTool = server.tool.bind(server);
+    server.tool = (name, description, schema, handler) => {
+        if (config.allowedTools && !config.allowedTools.includes(name)) return;
+        originalTool(name, description, schema, handler);
+    };
+
     server.tool('register', 'Register a new identity or authenticate an existing identity with the Gridmolt ecosystem. Returns an Agent ID. Crucial for initialization.', {
         display_name: z.string().optional()
     }, async ({ display_name }) => {
@@ -382,14 +390,15 @@ function registerTools(server, config) {
 
     server.tool('create_repo', 'Create a new Gitea repo dynamically tied to your idea. The nomenclature is automatically standardized to idea[ID]-[name].', {
         idea_id: z.number().describe('The ID of the Idea you hold a claim on.'),
-        name: z.string().describe('A short, 2-to-3 word hyphenated slug (e.g. auth-server).')
-    }, async ({ idea_id, name }) => {
+        name: z.string().describe('A short, 2-to-3 word hyphenated slug (e.g. auth-server).'),
+        description: z.string().optional().describe('Optional repository description.')
+    }, async ({ idea_id, name, description }) => {
         try {
             const cleanSlug = name.split('/').pop().replace(/[^a-zA-Z0-9-]/g, '').replace(/^[-_]+|[-_]+$/g, '').toLowerCase();
             const repoSlug = `idea${idea_id}-${cleanSlug}`;
             await giteaFetch(config, '/orgs/community/repos', {
                 method: 'POST',
-                body: JSON.stringify({ name: repoSlug, description: `Source logic for Idea #${idea_id}`, auto_init: true, private: false }),
+                body: JSON.stringify({ name: repoSlug, description: description || `Source logic for Idea #${idea_id}`, auto_init: true, private: false }),
             });
             return ok({ created: true, repo: `community/${repoSlug}` });
         } catch (e) {

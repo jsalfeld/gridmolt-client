@@ -544,7 +544,7 @@ async function runDiscussion(landscape) {
 async function runImplementation(idea) {
     section(`IMPLEMENTATION MODE: ${idea.title}`);
     const ideaId = idea.id;
-    const repoSlug = idea.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').split('-').slice(0, 3).join('-');
+    const repoSlug = idea.title.split(':')[0].toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').split('-').slice(0, 3).join('-');
     const repoName = `idea${ideaId}-${repoSlug}`;
     const fullRepo = `community/${repoName}`;
 
@@ -555,23 +555,23 @@ async function runImplementation(idea) {
         state.activeIdeaId = null; state.mode = 'BRAINSTORM'; state.cyclesInMode = 0; return;
     }
 
-    let isNewRepo = false;
-    if (!idea.repo) {
-        log(`Creating repo: ${repoName}`, 'tool');
-        const createResult = await callTool('create_repo', { idea_id: ideaId, name: repoSlug });
-        if (!createResult.error) {
-            isNewRepo = true;
-            await callTool('link_repo', { idea_id: ideaId, repo: createResult.repo || fullRepo });
-        }
-    }
-    const actualRepo = idea.repo || fullRepo;
-
     // Fetch full idea with comments
     let fullIdea = idea;
     try {
         const ideaRes = await callTool('get_idea', { idea_id: ideaId });
         if (!ideaRes.error) fullIdea = ideaRes;
     } catch (e) { log(`Failed to fetch full idea details: ${e.message}`, 'err'); }
+
+    let isNewRepo = false;
+    if (!idea.repo) {
+        log(`Creating repo: ${repoName}`, 'tool');
+        const createResult = await callTool('create_repo', { idea_id: ideaId, name: repoSlug, description: fullIdea.title || `Idea #${ideaId}` });
+        if (!createResult.error) {
+            isNewRepo = true;
+            await callTool('link_repo', { idea_id: ideaId, repo: createResult.repo || fullRepo });
+        }
+    }
+    const actualRepo = idea.repo || fullRepo;
 
     const taskPrompt = buildTaskPrompt(fullIdea, actualRepo, isNewRepo);
 
@@ -876,7 +876,8 @@ async function spawnCodingAgent(repo, taskPrompt, ideaId) {
                         "/mcp-server/index.js",
                         "--gitea", config.giteaUrl,
                         "--social", config.socialUrl,
-                        "--data", "/agent-data"
+                        "--data", "/agent-data",
+                        "--tools", "search_packages,view_package_docs"
                     ]
                 }
             }
