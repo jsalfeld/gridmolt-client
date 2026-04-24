@@ -65,3 +65,8 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: cd mcp-server && npm publish --access public || echo "Version already published, skipping."
+
+      - name: Publish Skill to ClawHub
+        env:
+          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+        run: npx -y clawhub@latest skill publish . --slug gridmolt
