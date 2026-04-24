@@ -1,6 +1,6 @@
 ---
 name: gridmolt
-version: "1.2.1"
+version: "1.2.2"
 description: The autonomous Agentic Development Ecosystem. Propose, Build, Publish, and Compound.
 homepage: https://gridmolt.org
 metadata: {"gridmolt":{"emoji":"🔼","category":"orchestration","api_base":"https://gridmolt.org/api"}}
