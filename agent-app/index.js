@@ -305,9 +305,9 @@ async function getDynamicPrompts() {
 
     if (!dynamicPrompts.brainstorm.system) {
         // Fallback defaults
-        dynamicPrompts.brainstorm.system = `You are {agentId}, an autonomous AI developer.\nPersona: {persona}\nInterests: {interests}\n\nYou are in BRAINSTORM mode. Research the ecosystem and propose a novel, useful idea.\n\nRULES:\n- Look at what exists and find GAPS\n- Review the ### Published Packages to see what community tools already exist.\n- Propose exactly ONE novel idea by calling the create_idea tool. DO NOT output plain text.\n- Think about real, useful applications — NOT trivial utilities\n- Your idea should be specific and actionable`;
+        dynamicPrompts.brainstorm.system = `You are {agentId}, an autonomous AI developer.\nPersona: {persona}\nInterests: {interests}\n\nYou are in BRAINSTORM mode. Research the ecosystem and propose a novel, useful idea.\n\nRULES:\n- Look at what exists and find GAPS\n- Review the ### Published Packages to see what community tools already exist.\n- Propose exactly ONE novel idea by calling the create_idea tool. DO NOT output plain text.\n- Think about real, useful applications — NOT trivial utilities\n- Your idea should be specific and actionable\n- Do NOT append a 'Tags:' list at the bottom of your description text\n- Do NOT include project timelines, roadmaps, or MVP planning. Focus only on what to build and why.`;
         dynamicPrompts.brainstorm.user = `## Current Ecosystem\n### Published Packages:\n{packages}\n\n### Repos ({repoCount}):\n{repos}\n\n### Ideas ({ideaCount}):\n{ideas}\n\n### Memory:\n{memory}{hint}\n\n## Task\nWhat useful software is MISSING? Consider your interests: {interests} and AVOID Saturated Domains. Call the create_idea tool right now.`;
-        dynamicPrompts.discussion.system = `You are {agentId}, an autonomous AI developer.\nPersona: {persona}\nInterests: {interests}\n\nYou are in DISCUSSION mode. Review proposed ideas, discuss them, upvote promising ones, and CLAIM ideas that are ready to build.\n\nRULES:\n- If an idea is interesting but needs refinement, use discuss_idea\n- If an idea is strong, use upvote_idea\n- If an idea has upvotes and good discussion, CLAIM it with claim_idea to start building\n- IMPORTANT: You should gently prioritize claiming ideas that are currently UNCLAIMED and have a high number of PUBLISH VOTES (🚀)\n- You MUST call at least one of these action tools. Do NOT output plain text.`;
+        dynamicPrompts.discussion.system = `You are {agentId}, an autonomous AI developer.\nPersona: {persona}\nInterests: {interests}\n\nYou are in DISCUSSION mode. Review proposed ideas, discuss them, upvote promising ones, and CLAIM ideas that are ready to build.\n\nRULES:\n- If an idea is interesting but needs refinement, use discuss_idea\n- If an idea is strong, use upvote_idea\n- If an idea has upvotes and good discussion, CLAIM it with claim_idea to start building\n- IMPORTANT: You should gently prioritize claiming ideas that are currently UNCLAIMED and have a high number of PUBLISH VOTES (🚀)\n- Do NOT include project timelines, roadmaps, or MVP planning in your comments.\n- You MUST call at least one of these action tools. Do NOT output plain text.`;
         dynamicPrompts.discussion.user = `## Relevant Ideas\n{ideas}\n\n### Memory:\n{memory}\n\n## Task\nReview the ideas above. First, discuss or upvote the most promising idea from ANOTHER agent based on recent comments. If an idea has high consensus (🚀 publishes) and is completely ready to build, you may use claim_idea to escalate it to the build phase. Avoid claiming already-claimed implementations unless explicitly necessary!`;
     }
     return dynamicPrompts;
@@ -627,14 +627,18 @@ Do not include any other text or markdown wrappers.`;
 
         // Synchronously trigger Native MCP push immediately after build completes!
         try {
-            await callTool('push_code', {
+            const pushResult = await callTool('push_code', {
                 dir: path.join(config.workDir, actualRepo.replace('/', '-'), 'repo'),
                 repo_name: actualRepo,
                 commit_message: `build(agent): ${agentId} iteration`
             });
-            log(`Code pushed securely via MCP Native Execution!`, 'ok');
+            if (pushResult && pushResult.error) {
+                log(`MCP Push failed: ${pushResult.error}`, 'err');
+            } else {
+                log(`Code pushed securely via MCP Native Execution!`, 'ok');
+            }
         } catch (pe) {
-            log(`MCP Push failed: ${pe.message}`, 'err');
+            log(`MCP Push exception: ${pe.message}`, 'err');
         }
 
         const repoWorkDir = path.join(config.workDir, actualRepo.replace('/', '-'), 'repo');

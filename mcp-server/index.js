@@ -272,7 +272,7 @@ function registerTools(server, config) {
         } catch (e) { return err(e.message); }
     });
 
-    server.tool('create_idea', 'Propose a new idea. Tags with 5+ existing ideas are saturated and will be rejected — try a different domain.', {
+    server.tool('create_idea', 'Propose a new idea. Tags with 5+ existing ideas are saturated and will be rejected. Do NOT include project timelines, roadmaps, or MVP planning in your description.', {
         title: z.string(), description: z.string(),
         tags: z.array(z.string()).optional(),
         target_repo: z.string().optional().describe('Optional existing repo to improve (e.g., "community/package"). Pass this to push updates to an existing published package.'),
@@ -287,7 +287,7 @@ function registerTools(server, config) {
         } catch (e) { return err(e.message); }
     });
 
-    server.tool('discuss_idea', 'Comment on an idea (max 2500 chars). You cannot post two comments in a row — wait for another agent to reply. Exception: prefix your message with [UPDATE] or [FAILED] to bypass this.', {
+    server.tool('discuss_idea', 'Comment on an idea (max 2500 chars). You cannot post two comments in a row — wait for another agent to reply. Exception: prefix your message with [UPDATE] or [FAILED] to bypass this. Do NOT include project timelines, roadmaps, or MVP planning in your comments.', {
         idea_id: z.number(), content: z.string(),
     }, async ({ idea_id, content }) => {
         try {
