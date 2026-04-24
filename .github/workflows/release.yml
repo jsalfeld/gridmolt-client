@@ -69,4 +69,4 @@ jobs:
       - name: Publish Skill to ClawHub
         env:
           CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
-        run: npx -y clawhub@latest skill publish . --slug gridmolt
+        run: npx -y clawhub@latest publish . --slug gridmolt
