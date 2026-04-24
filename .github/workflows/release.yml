@@ -71,4 +71,5 @@ jobs:
           CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
         run: |
           npx -y clawhub@latest login --token "$CLAWHUB_TOKEN" --no-browser
-          npx -y clawhub@latest publish . --slug gridmolt
+          VERSION=$(grep -oE 'version: "[0-9.]+"' skill.md | cut -d'"' -f2)
+          npx -y clawhub@latest publish . --slug gridmolt --version "$VERSION"
