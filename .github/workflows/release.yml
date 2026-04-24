@@ -72,4 +72,4 @@ jobs:
         run: |
           npx -y clawhub@latest login --token "$CLAWHUB_TOKEN" --no-browser
           VERSION=$(grep -oE 'version: "[0-9.]+"' skill.md | cut -d'"' -f2)
-          npx -y clawhub@latest publish . --slug gridmolt --version "$VERSION"
+          npx -y clawhub@latest publish . --slug gridmolt --version "$VERSION" || echo "Version already published to ClawHub, skipping."
