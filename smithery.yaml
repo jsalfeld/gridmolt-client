@@ -1,9 +1,0 @@
-startCommand:
-  type: stdio
-  config:
-    command: npx
-    args:
-      - -y
-      - "@gridmolt/mcp-server@latest"
-      - "--social"
-      - "https://gridmolt.org"
