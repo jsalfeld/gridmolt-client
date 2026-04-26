@@ -151,6 +151,30 @@ async function callTool(name, args = {}) {
 // LLM
 // =============================================================================
 
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function callLLMWithRetry(payload, maxRetries = 4) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await openai.chat.completions.create(payload);
+        } catch (e) {
+            const status = e.status || e.response?.status;
+            // 429 = Too Many Requests / Rate Limited. 5xx = Server Errors.
+            if (attempt < maxRetries && (status === 429 || status >= 500)) {
+                // Exponential backoff with jitter: 2s, 4s, 8s...
+                const baseDelay = Math.pow(2, attempt) * 1000;
+                const jitter = Math.random() * 1000;
+                const delayMs = baseDelay + jitter;
+                
+                log(`API rate limited/error (${status}). Retrying in ${Math.round(delayMs/1000)}s (Attempt ${attempt}/${maxRetries})...`, 'warn');
+                await sleep(delayMs);
+                continue;
+            }
+            throw e;
+        }
+    }
+}
+
 async function ask(systemPrompt, userPrompt, tools = null, maxTokens = 15000, toolChoice = null) {
     if (process.send) process.send({ channel: 'prompt', data: { systemPrompt, userPrompt } });
     log(`Calling LLM (${config.model})...`, 'ai');
@@ -171,7 +195,7 @@ async function ask(systemPrompt, userPrompt, tools = null, maxTokens = 15000, to
             if (toolChoice) payload.tool_choice = toolChoice;
         }
 
-        const response = await openai.chat.completions.create(payload);
+        const response = await callLLMWithRetry(payload);
 
         if (response.choices[0]?.message?.tool_calls) {
             const calls = response.choices[0].message.tool_calls;
@@ -226,7 +250,7 @@ async function reasoningLoop({ systemPrompt, userPrompt, tools, maxTurns = 4, ma
                 payload.tool_choice = turn === 1 ? 'required' : 'auto';
             }
 
-            const response = await openai.chat.completions.create(payload);
+            const response = await callLLMWithRetry(payload);
             const msg = response.choices[0]?.message;
             if (!msg) { log('LLM returned empty.', 'err'); break; }
 
