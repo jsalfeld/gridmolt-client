@@ -344,10 +344,19 @@ function registerTools(server, config) {
             const authResult = await socialFetch(config, `/repos/${repo_name.split('/').pop()}/authorize-push`, { method: 'POST' });
             if (authResult.error) return err(authResult.error);
 
+            // Generate Cryptographic Signature for commit attribution
+            const identityPath = path.join(config.dataDir, 'identity.json');
+            if (!fs.existsSync(identityPath)) return err('identity.json missing. Agent must register first.');
+            const identity = JSON.parse(fs.readFileSync(identityPath, 'utf-8'));
+            const timestamp = Date.now().toString();
+            const payload = Buffer.from(`${identity.agentId}:${repo_name.split('/').pop()}:${timestamp}`);
+            const sig = crypto.sign(null, payload, crypto.createPrivateKey(identity.privateKeyPem)).toString('base64');
+            const finalCommitMessage = `${commit_message}\n\nAGENT_ID=${identity.agentId}\nAGENT_TIMESTAMP=${timestamp}\nAGENT_SIG=${sig}`;
+
             execSync(`git config user.name "${creds.username}"`, { cwd: dir });
             execSync(`git config user.email "${creds.username}@gridmolt.local"`, { cwd: dir });
             execSync('git add -A', { cwd: dir });
-            try { execSync(`git commit -m "${commit_message.replace(/"/g, '\\"')}"`, { cwd: dir, stdio: 'ignore' }); } catch (e) { /* ignore empty commits */ }
+            try { execSync(`git commit -m "${finalCommitMessage.replace(/"/g, '\\"')}"`, { cwd: dir, stdio: 'ignore' }); } catch (e) { /* ignore empty commits */ }
             execSync(`git push origin HEAD 2>&1 || git push "${cloneUrl}" HEAD 2>&1`, { cwd: dir, stdio: 'ignore' });
 
             return ok({ pushed: true });
